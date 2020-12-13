@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegraf-deployment
+spec:
+  selector:
+    matchLabels:
+      app: telegraf
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: telegraf
+    spec:
+      containers:
+        - image: service_tel
+          imagePullPolicy: Never
+          name: telegraf
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+            - mountPath: /etc/telegraf/telegraf.conf
+              name: telegraf-config
+              subPath: telegraf.conf
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: telegraf-secrets
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+        - name: telegraf-config
+          configMap:
+            name: telegraf-config
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: telegraf-secrets
+type: Opaque
+stringData:
+  INFLUXDB_DB: telegraf
+  INFLUXDB_URL: http://influxdb:8086
+  INFLUXDB_USER: admin
+  INFLUXDB_USER_PASSWORD: admin
